@@ -7,6 +7,7 @@ https://github.com/Esri/resource-proxy
 https://github.com/Outtascope/servlet-proxy
 
 ## 2. 改造后的几个版本
+> 放入tomcat中启动，我的版本是8.5.x
 - servlet改造第一版，放在com.company.gis.proxy.servlet目录     
     基于servlet-proxy改造，且使用jdk8。   
     访问地址：localhost:8080/gis_proxy/demoProxy?ping
