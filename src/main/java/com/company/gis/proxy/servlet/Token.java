@@ -1,4 +1,4 @@
-package com.paodingsoft.gis.proxy.servlet;
+package com.company.gis.proxy.servlet;
 
 /**
  * Token container class.

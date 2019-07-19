@@ -7,15 +7,15 @@
 
     <servlet>
         <servlet-name>ServletProxy</servlet-name>
-        <servlet-class>com.paodingsoft.gis.proxy.servlet.Proxy</servlet-class>
+        <servlet-class>com.company.gis.proxy.servlet.Proxy</servlet-class>
     </servlet>
     <servlet>
         <servlet-name>DemoServlet</servlet-name>
-        <servlet-class>com.paodingsoft.gis.proxy.ProxyServlet</servlet-class>
+        <servlet-class>com.company.gis.proxy.ProxyServlet</servlet-class>
     </servlet>
     <servlet>
         <servlet-name>JspServlet</servlet-name>
-        <servlet-class>com.paodingsoft.gis.proxy.jsp.JspServlet</servlet-class>
+        <servlet-class>com.company.gis.proxy.jsp.JspServlet</servlet-class>
     </servlet>
     <servlet-mapping>
         <servlet-name>DemoServlet</servlet-name>

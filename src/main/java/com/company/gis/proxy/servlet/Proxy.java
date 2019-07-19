@@ -1,4 +1,4 @@
-package com.paodingsoft.gis.proxy.servlet;
+package com.company.gis.proxy.servlet;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;

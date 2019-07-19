@@ -1,4 +1,4 @@
-package com.paodingsoft.gis.proxy.jsp;
+package com.company.gis.proxy.jsp;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
