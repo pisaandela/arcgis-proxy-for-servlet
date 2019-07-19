@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
+         version="3.1">
+    <display-name>gis_proxy</display-name>
+
+    <servlet>
+        <servlet-name>ServletProxy</servlet-name>
+        <servlet-class>com.paodingsoft.gis.proxy.servlet.Proxy</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>DemoServlet</servlet-name>
+        <servlet-class>com.paodingsoft.gis.proxy.ProxyServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>JspServlet</servlet-name>
+        <servlet-class>com.paodingsoft.gis.proxy.jsp.JspServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>DemoServlet</servlet-name>
+        <url-pattern>/demoProxy</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>ServletProxy</servlet-name>
+        <url-pattern>/servletProxy</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>JspServlet</servlet-name>
+        <url-pattern>/proxy</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>default</servlet-name>
+        <url-pattern>*.jpg</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>default</servlet-name>
+        <url-pattern>*.js</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>default</servlet-name>
+        <url-pattern>*.css</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>default</servlet-name>
+        <url-pattern>*.png</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>default</servlet-name>
+        <url-pattern>*.gif</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>default</servlet-name>
+        <url-pattern>*.html</url-pattern>
+    </servlet-mapping>
+    <welcome-file-list>
+        <welcome-file>/index.jsp</welcome-file>
+    </welcome-file-list>
+    <session-config>
+        <session-timeout>60</session-timeout>
+    </session-config>
+
+</web-app>
