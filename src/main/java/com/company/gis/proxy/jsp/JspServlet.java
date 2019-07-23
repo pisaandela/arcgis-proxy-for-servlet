@@ -1,14 +1,17 @@
 package com.company.gis.proxy.jsp;
 
+import javax.net.ssl.*;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.jsp.JspFactory;
-import javax.servlet.jsp.PageContext;
 import java.io.*;
 import java.net.*;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,7 +22,6 @@ import java.util.logging.SimpleFormatter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.sun.imageio.plugins.jpeg.JPEG.version;
 
 public class JspServlet extends HttpServlet {
 
@@ -54,7 +56,7 @@ public class JspServlet extends HttpServlet {
         int _countCap;
         double _count = 0;
 
-        long _lastUpdate = new Date().getTime();
+        long _lastUpdate = System.currentTimeMillis();
 
         public RateMeter(int rateLimit, int rateLimitPeriod) {
             this._rate = (double) rateLimit / rateLimitPeriod / 60;
@@ -63,8 +65,8 @@ public class JspServlet extends HttpServlet {
 
         //called when rate-limited endpoint is invoked
         public boolean click() {
-            long ts = (new Date().getTime() - _lastUpdate) / 1000;
-            this._lastUpdate = new Date().getTime();
+            long ts = (System.currentTimeMillis() - _lastUpdate) / 1000;
+            this._lastUpdate = System.currentTimeMillis();
             //assuming uniform distribution of requests over time,
             //reducing the counter according to # of seconds passed
             //since last invocation
@@ -78,7 +80,7 @@ public class JspServlet extends HttpServlet {
         }
 
         public boolean canBeCleaned() {
-            long ts = (new Date().getTime() - this._lastUpdate) / 1000;
+            long ts = (System.currentTimeMillis() - this._lastUpdate) / 1000;
             return this._count - ts * this._rate <= 0;
         }
 
@@ -110,7 +112,7 @@ public class JspServlet extends HttpServlet {
     }
 
     //proxy sends the actual request to the server
-    private HttpURLConnection forwardToServer(HttpServletRequest request, String uri, byte[] postBody) throws IOException {
+    private HttpURLConnection forwardToServer(HttpServletRequest request, String uri, byte[] postBody) throws IOException, NoSuchAlgorithmException, KeyManagementException {
         //copy the client's request header to the proxy's request
         Enumeration headerNames = request.getHeaderNames();
         HashMap<String, String> mapHeaderInfo = new HashMap<String, String>();
@@ -221,7 +223,7 @@ public class JspServlet extends HttpServlet {
     }
 
     //simplified interface of doHTTPRequest, will eventually call the complete interface of doHTTPRequest
-    private HttpURLConnection doHTTPRequest(String uri, String method) throws IOException {
+    private HttpURLConnection doHTTPRequest(String uri, String method) throws IOException, NoSuchAlgorithmException, KeyManagementException {
         //build the bytes sent to server
         byte[] bytes = null;
 
@@ -243,13 +245,32 @@ public class JspServlet extends HttpServlet {
     }
 
     //complete interface of doHTTPRequest
-    private HttpURLConnection doHTTPRequest(String uri, byte[] bytes, String method, Map mapHeaderInfo) throws IOException {
+    private HttpURLConnection doHTTPRequest(String uri, byte[] bytes, String method, Map mapHeaderInfo) throws IOException , KeyManagementException, NoSuchAlgorithmException {
+
+        HttpsURLConnection.setDefaultHostnameVerifier(new JspServlet.NullHostNameVerifier());
+        SSLContext sc = SSLContext.getInstance("TLS");
+        sc.init(null, trustAllCerts, null);
+        HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
         URL url = new URL(uri);
         HttpURLConnection con = (HttpURLConnection) url.openConnection();
 
         con.setConnectTimeout(5000);
         con.setReadTimeout(10000);
         con.setRequestMethod(method);
+/*
+//https://blog.csdn.net/guoxilen/article/details/78543690
+//https://blog.csdn.net/audioo1/article/details/51746333
+        SSLContext sc = SSLContext.getInstance("TLS");
+        sc.init(null, trustAllCerts, new SecureRandom());
+        HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+
+        URL url = new URL(uri);
+        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+        con.setRequestProperty("Content-Type", "application/json;charset=utf-8");
+        con.setConnectTimeout(5000);
+        con.setReadTimeout(10000);
+        con.setRequestMethod(method);
+*/
 
         //pass the header to the proxy's request
         passHeadersInfo(mapHeaderInfo, con);
@@ -291,7 +312,7 @@ public class JspServlet extends HttpServlet {
     }
 
     //request token
-    private String getNewTokenIfCredentialsAreSpecified(ServerUrl su, String url) throws IOException {
+    private String getNewTokenIfCredentialsAreSpecified(ServerUrl su, String url) throws IOException, KeyManagementException, NoSuchAlgorithmException {
         String token = "";
         boolean isUserLogin = (su.getUsername() != null && !su.getUsername().isEmpty()) && (su.getPassword() != null && !su.getPassword().isEmpty());
         boolean isAppLogin = (su.getClientId() != null && !su.getClientId().isEmpty()) && (su.getClientSecret() != null && !su.getClientSecret().isEmpty());
@@ -472,7 +493,7 @@ public class JspServlet extends HttpServlet {
         return url.startsWith("//") ? url.replace("//", "https://") : url;
     }
 
-    private String exchangePortalTokenForServerToken(String portalToken, ServerUrl su) throws IOException {
+    private String exchangePortalTokenForServerToken(String portalToken, ServerUrl su) throws IOException, KeyManagementException, NoSuchAlgorithmException {
         String url = getFullUrl(su.getUrl());
         _log(Level.INFO, "[Info]: Exchanging Portal token for Server-specific token for " + url + "...");
         String uri = su.getOAuth2Endpoint().substring(0, su.getOAuth2Endpoint().toLowerCase().indexOf("/oauth2/")) +
@@ -1014,12 +1035,42 @@ public class JspServlet extends HttpServlet {
     }
 
 
+    static TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
+        @Override
+        public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+            // TODO Auto-generated method stub
+        }
 
+        @Override
+        public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+            // TODO Auto-generated method stub
+        }
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            // TODO Auto-generated method stub
+            return null;
+        }
+    } };
+
+    public class NullHostNameVerifier implements HostnameVerifier {
+        /*
+         * (non-Javadoc)
+         *
+         * @see javax.net.ssl.HostnameVerifier#verify(java.lang.String,
+         * javax.net.ssl.SSLSession)
+         */
+        @Override
+        public boolean verify(String arg0, SSLSession arg1) {
+            // TODO Auto-generated method stub
+            return true;
+        }
+    }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         ServletContext application = this.getServletContext();// 获取application
-        PageContext pageContext =JspFactory.getDefaultFactory().getPageContext(this, request, response, null, true, 8192, true);
+        //PageContext pageContext =JspFactory.getDefaultFactory().getPageContext(this, request, response, null, true, 8192, true);
         String originalUri = request.getQueryString();
 
         _log(Level.INFO, "Creating request for: "+originalUri);
@@ -1205,6 +1256,10 @@ public class JspServlet extends HttpServlet {
             } catch (IOException finalErr) {
                 _log("There was an error sending a response to the client.  Will not try again.", finalErr);
             }
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (KeyManagementException e) {
+            e.printStackTrace();
         }
     }
 
@@ -1212,5 +1267,4 @@ public class JspServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         doPost(request, response);
     }
-
 }

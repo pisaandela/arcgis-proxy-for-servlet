@@ -1,4 +1,3 @@
-<%--
 <%@page session="false"%>
 <%@page import="
 java.net.HttpURLConnection,
@@ -31,6 +30,11 @@ java.util.Iterator,
 java.util.Enumeration,
 java.util.HashMap,
 java.text.SimpleDateFormat" %>
+<%@ page import="java.security.cert.X509Certificate" %>
+<%@ page import="java.security.cert.CertificateException" %>
+<%@ page import="javax.net.ssl.*" %>
+<%@ page import="java.security.NoSuchAlgorithmException" %>
+<%@ page import="java.security.KeyManagementException" %>
 
 <!-- ----------------------------------------------------------
 *
@@ -130,7 +134,7 @@ java.text.SimpleDateFormat" %>
     }
 
     //proxy sends the actual request to the server
-    private HttpURLConnection forwardToServer(HttpServletRequest request, String uri, byte[] postBody) throws IOException{
+    private HttpURLConnection forwardToServer(HttpServletRequest request, String uri, byte[] postBody) throws IOException, KeyManagementException, NoSuchAlgorithmException {
         //copy the client's request header to the proxy's request
         Enumeration headerNames = request.getHeaderNames();
         HashMap<String, String> mapHeaderInfo = new HashMap<String, String>();
@@ -237,7 +241,7 @@ java.text.SimpleDateFormat" %>
     }
 
     //simplified interface of doHTTPRequest, will eventually call the complete interface of doHTTPRequest
-    private HttpURLConnection doHTTPRequest(String uri, String method) throws IOException{
+    private HttpURLConnection doHTTPRequest(String uri, String method) throws IOException, KeyManagementException, NoSuchAlgorithmException {
         //build the bytes sent to server
         byte[] bytes = null;
 
@@ -259,14 +263,37 @@ java.text.SimpleDateFormat" %>
     }
 
     //complete interface of doHTTPRequest
-    private HttpURLConnection doHTTPRequest(String uri, byte[] bytes, String method, Map mapHeaderInfo) throws IOException{
-        URL url = new URL(uri);
+    private HttpURLConnection doHTTPRequest(String uri, byte[] bytes, String method, Map mapHeaderInfo) throws IOException, NoSuchAlgorithmException, KeyManagementException {
+/*        URL url = new URL(uri);
         HttpURLConnection con = (HttpURLConnection)url.openConnection();
 
         con.setConnectTimeout(5000);
         con.setReadTimeout(10000);
-        con.setRequestMethod(method);
+        con.setRequestMethod(method);*/
 
+//免证书
+        HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier(){
+            /*
+             * (non-Javadoc)
+             *
+             * @see javax.net.ssl.HostnameVerifier#verify(java.lang.String,
+             * javax.net.ssl.SSLSession)
+             */
+            @Override
+            public boolean verify(String arg0, SSLSession arg1) {
+                // TODO Auto-generated method stub
+                return true;
+            }
+        });
+        SSLContext sc = SSLContext.getInstance("TLS");
+        sc.init(null, trustAllCerts, null);
+        HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+        URL url = new URL(uri);
+        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+
+        con.setConnectTimeout(5000);
+        con.setReadTimeout(10000);
+        con.setRequestMethod(method);
         //pass the header to the proxy's request
         passHeadersInfo(mapHeaderInfo, con);
 
@@ -307,7 +334,7 @@ java.text.SimpleDateFormat" %>
     }
 
     //request token
-    private String getNewTokenIfCredentialsAreSpecified(ServerUrl su, String url) throws IOException{
+    private String getNewTokenIfCredentialsAreSpecified(ServerUrl su, String url) throws IOException, NoSuchAlgorithmException, KeyManagementException {
         String token = "";
         boolean isUserLogin = (su.getUsername() != null && !su.getUsername().isEmpty()) && (su.getPassword() != null && !su.getPassword().isEmpty());
         boolean isAppLogin = (su.getClientId() != null && !su.getClientId().isEmpty()) && (su.getClientSecret() != null && !su.getClientSecret().isEmpty());
@@ -488,7 +515,7 @@ java.text.SimpleDateFormat" %>
         return url.startsWith("//") ? url.replace("//","https://") : url;
     }
 
-    private String exchangePortalTokenForServerToken(String portalToken, ServerUrl su) throws IOException{
+    private String exchangePortalTokenForServerToken(String portalToken, ServerUrl su) throws IOException, NoSuchAlgorithmException, KeyManagementException {
         String url = getFullUrl(su.getUrl());
         _log(Level.INFO, "[Info]: Exchanging Portal token for Server-specific token for " + url + "...");
         String uri = su.getOAuth2Endpoint().substring(0, su.getOAuth2Endpoint().toLowerCase().indexOf("/oauth2/")) +
@@ -1006,6 +1033,26 @@ java.text.SimpleDateFormat" %>
     private ConcurrentHashMap<String, RateMeter> castRateMap(Object rateMap){
         return (ConcurrentHashMap<String, RateMeter>) rateMap;
     }
+
+
+    static TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
+        @Override
+        public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+            // TODO Auto-generated method stub
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+            // TODO Auto-generated method stub
+        }
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            // TODO Auto-generated method stub
+            return null;
+        }
+    } };
+
 %><%
     String originalUri = request.getQueryString();
     _log(Level.INFO, "Creating request for: " + originalUri);
@@ -1191,4 +1238,3 @@ java.text.SimpleDateFormat" %>
         }
     }
 %>
---%>
