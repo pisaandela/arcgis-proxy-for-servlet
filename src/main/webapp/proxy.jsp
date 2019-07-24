@@ -179,9 +179,9 @@ java.text.SimpleDateFormat" %>
                     // remove Transfer-Encoding/chunked to the client
                     // StackOverflow http://stackoverflow.com/questions/31452074/how-to-proxy-http-requests-in-spring-mvc
                     if (headerFieldKey != null && headerFieldKey.toLowerCase().equals("transfer-encoding")) {
-	                    if (value != null && value.toLowerCase().equals("chunked")) {
-		                    continue;
-	                    }
+                        if (value != null && value.toLowerCase().equals("chunked")) {
+                            continue;
+                        }
                     }
 
                     sb.append(value);
@@ -264,13 +264,12 @@ java.text.SimpleDateFormat" %>
 
     //complete interface of doHTTPRequest
     private HttpURLConnection doHTTPRequest(String uri, byte[] bytes, String method, Map mapHeaderInfo) throws IOException, NoSuchAlgorithmException, KeyManagementException {
-/*        URL url = new URL(uri);
+        /*URL url = new URL(uri);
         HttpURLConnection con = (HttpURLConnection)url.openConnection();
 
         con.setConnectTimeout(5000);
         con.setReadTimeout(10000);
         con.setRequestMethod(method);*/
-
 //免证书
         HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier(){
             /*
@@ -1033,8 +1032,6 @@ java.text.SimpleDateFormat" %>
     private ConcurrentHashMap<String, RateMeter> castRateMap(Object rateMap){
         return (ConcurrentHashMap<String, RateMeter>) rateMap;
     }
-
-
     static TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
         @Override
         public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
@@ -1052,8 +1049,17 @@ java.text.SimpleDateFormat" %>
             return null;
         }
     } };
-
 %><%
+    /* 允许跨域的主机地址 */
+    response.setHeader("Access-Control-Allow-Origin", "*");
+    /* 允许跨域的请求方法GET, POST, HEAD 等 */
+    response.setHeader("Access-Control-Allow-Methods", "*");
+    /* 重新预检验跨域的缓存时间 (s) */
+    response.setHeader("Access-Control-Max-Age", "3600");
+    /* 允许跨域的请求头 */
+    response.setHeader("Access-Control-Allow-Headers", "*");
+    /* 是否携带cookie */
+    response.setHeader("Access-Control-Allow-Credentials", "true");
     String originalUri = request.getQueryString();
     _log(Level.INFO, "Creating request for: " + originalUri);
     ServerUrl serverUrl;

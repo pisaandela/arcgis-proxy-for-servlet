@@ -1,42 +1,26 @@
 package com.company.gis.proxy.servlet;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.io.Reader;
-
+import javax.net.ssl.*;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
-
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
-
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
-
-import javax.servlet.ServletException;
-
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 
 /**
@@ -59,6 +43,18 @@ public class Proxy extends HttpServlet {
      */
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+
+        /* 允许跨域的主机地址 */
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        /* 允许跨域的请求方法GET, POST, HEAD 等 */
+        response.setHeader("Access-Control-Allow-Methods", "*");
+        /* 重新预检验跨域的缓存时间 (s) */
+        response.setHeader("Access-Control-Max-Age", "3600");
+        /* 允许跨域的请求头 */
+        response.setHeader("Access-Control-Allow-Headers", "*");
+        /* 是否携带cookie */
+        response.setHeader("Access-Control-Allow-Credentials", "true");
+
         response.setContentType(Constants.CONTENT_TYPE_HTML);
         String uri = null;
         try (PrintWriter out = response.getWriter()) {
@@ -131,6 +127,10 @@ public class Proxy extends HttpServlet {
             } catch (IOException finalErr) {
                 _log(Constants.MSG_ERRORNORETRY, finalErr);
             }
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (KeyManagementException e) {
+            e.printStackTrace();
         }
     }
 
@@ -253,7 +253,7 @@ public class Proxy extends HttpServlet {
     }
 
     public Token initToken(ServerUrl serverUrl, String uri, HttpServletRequest request)
-            throws IOException {
+            throws IOException, KeyManagementException, NoSuchAlgorithmException {
         Token returnvalue = null;
 
         String tokenvalue;
@@ -342,7 +342,7 @@ public class Proxy extends HttpServlet {
         return new byte[0];
     }
 
-    private HttpURLConnection forwardToServer(HttpServletRequest request, String uri, byte[] postBody) throws IOException {
+    private HttpURLConnection forwardToServer(HttpServletRequest request, String uri, byte[] postBody) throws IOException, NoSuchAlgorithmException, KeyManagementException {
         return postBody.length > 0 ?
                 doHTTPRequest(uri,
                         postBody,
@@ -423,7 +423,7 @@ public class Proxy extends HttpServlet {
         return true;
     }
 
-    private HttpURLConnection doHTTPRequest(String uri, String method) throws IOException {
+    private HttpURLConnection doHTTPRequest(String uri, String method) throws IOException, NoSuchAlgorithmException, KeyManagementException {
         byte[] bytes = null;
         String contentType = null;
         if (method.equals(Constants.METHOD_POST)) {
@@ -444,14 +444,25 @@ public class Proxy extends HttpServlet {
                                             byte[] bytes,
                                             String method,
                                             String referer,
-                                            String contentType) throws IOException {
-        URL url = new URL(uri);
+                                            String contentType) throws IOException, NoSuchAlgorithmException, KeyManagementException {
+       /* URL url = new URL(uri);
         HttpURLConnection con = (HttpURLConnection) url.openConnection();
 
         con.setConnectTimeout(5000);
         con.setReadTimeout(10000);
 
         con.setRequestProperty(Constants.ATR_REFERER, referer);
+        con.setRequestMethod(method);*/
+
+        HttpsURLConnection.setDefaultHostnameVerifier(new Proxy.NullHostNameVerifier());
+        SSLContext sc = SSLContext.getInstance("TLS");
+        sc.init(null, trustAllCerts, null);
+        HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+        URL url = new URL(uri);
+        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+
+        con.setConnectTimeout(5000);
+        con.setReadTimeout(10000);
         con.setRequestMethod(method);
 
         if (bytes != null && bytes.length > 0 || method.equals(Constants.METHOD_POST)) {
@@ -491,7 +502,7 @@ public class Proxy extends HttpServlet {
         return strResponse;
     }
 
-    private Token getNewTokenIfCredentialsAreSpecified(ServerUrl su, String url) throws IOException {
+    private Token getNewTokenIfCredentialsAreSpecified(ServerUrl su, String url) throws IOException, NoSuchAlgorithmException, KeyManagementException {
         Token token = null;
         String tokenstring;
         boolean isUserLogin = (su.getUsername() != null && !su.getUsername().isEmpty()) &&
@@ -618,7 +629,7 @@ public class Proxy extends HttpServlet {
         return url.startsWith("//") ? url.replace("//", Constants.PROTO_HTTPS + "://") : url;
     }
 
-    private String exchangePortalTokenForServerToken(String portalToken, ServerUrl su) throws IOException {
+    private String exchangePortalTokenForServerToken(String portalToken, ServerUrl su) throws IOException, NoSuchAlgorithmException, KeyManagementException {
         String url = getFullUrl(su.getUrl());
         _log(Level.INFO, String.format(Constants.MSG_TOKEN_EXCHANGE, url));
         String oa2end = su.getOAuth2Endpoint();
@@ -796,4 +807,37 @@ public class Proxy extends HttpServlet {
         output.write(message.getBytes());
         output.flush();
     }
+
+    static TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
+        @Override
+        public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+            // TODO Auto-generated method stub
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+            // TODO Auto-generated method stub
+        }
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            // TODO Auto-generated method stub
+            return null;
+        }
+    } };
+
+    public class NullHostNameVerifier implements HostnameVerifier {
+        /*
+         * (non-Javadoc)
+         *
+         * @see javax.net.ssl.HostnameVerifier#verify(java.lang.String,
+         * javax.net.ssl.SSLSession)
+         */
+        @Override
+        public boolean verify(String arg0, SSLSession arg1) {
+            // TODO Auto-generated method stub
+            return true;
+        }
+    }
+
 }
