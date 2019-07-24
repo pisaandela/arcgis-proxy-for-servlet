@@ -24,3 +24,28 @@ https://github.com/Outtascope/servlet-proxy
 3. 在JspServlet.java文件中加入`@WebServlet(urlPatterns = "/proxy",name="ProxyServlet")`的类上注解；
 4. 访问localhost:8080/proxy?ping，或者加上项目名的地址。
 > 网上有很多springboot使用servlet的方法的文章，可以百度一下在操作。  
+
+## 4. 问题收集
+1. 忽略https证书验证的解决
+    - 出现情况：     
+        `javax.net.ssl.SSLHandshakeException: java.security.cert.CertificateException: No subject alternative names present`        
+    - 解决办法：     
+        加上证书通过的代码。具体参考：     
+        https://blog.csdn.net/it_dx/article/details/78866711        
+        https://blog.csdn.net/audioo1/article/details/51746333      
+2. 跨域问题的解决
+    - 浏览器出现跨域：
+    - 解决办法：     
+        把下面这段加入到请求方法里。
+        ```java
+        /* 允许跨域的主机地址 */
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        /* 允许跨域的请求方法GET, POST, HEAD 等 */
+        response.setHeader("Access-Control-Allow-Methods", "*");
+        /* 重新预检验跨域的缓存时间 (s) */
+        response.setHeader("Access-Control-Max-Age", "3600");
+        /* 允许跨域的请求头 */
+        response.setHeader("Access-Control-Allow-Headers", "*");
+        /* 是否携带cookie */
+        response.setHeader("Access-Control-Allow-Credentials", "true");
+        ```        
