@@ -7,6 +7,7 @@
     <groupId>com.paodingsoft</groupId>
     <artifactId>gis_proxy</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <packaging>war</packaging>
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
@@ -30,6 +31,8 @@
             <version>3.6</version>
         </dependency>
     </dependencies>
-
+    <build>
+        <finalName>gis_proxy</finalName>
+    </build>
 
 </project>
