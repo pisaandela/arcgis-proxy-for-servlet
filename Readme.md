@@ -49,3 +49,17 @@ https://github.com/Outtascope/servlet-proxy
         /* 是否携带cookie */
         response.setHeader("Access-Control-Allow-Credentials", "true");
         ```        
+        
+## 5. 终极解决法
+proxy.jsp放在webapp下面，访问时不经过项目过滤，直接通过url就能访问，但是在`proxy.jsp`的`1082`行加入session验证,就能验证有没有登录了。    
+```java
+/**
+ * 可以在这里获取session，不用写，比较直接
+ * "key"换成登录时存的session就行了
+ */
+Object attribute = request.getSession().getAttribute("key");
+if (null == attribute || "".equals(attribute.toString())) {
+    String url = request.getContextPath() + "/login";
+    response.sendRedirect(url);
+}
+```
