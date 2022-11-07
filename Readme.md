@@ -1,4 +1,5 @@
-# v1.1.2版的arcgis代理servlet版
+# v1.1.2版的arcgis代理servlet版(已作废)
+> 没必要做servlet版，有更简单的方法，移步
 ## 1. 老版本存在的问题
 - 官方库中没有servlet版本，只有jsp版，并不能用在分离的项目中。   
 https://github.com/Esri/resource-proxy
